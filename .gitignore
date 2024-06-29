@@ -1,0 +1,8 @@
+.history
+.idea
+img
+video
+venv
+*.jpg
+*.png
+*.mp4
