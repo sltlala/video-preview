@@ -7,7 +7,6 @@ def capture_frame(video_path, time):
     使用opencv从视频文件中获取指定时间点的截图并保存为图像文件。
 
     :param video_path: 视频文件路径
-    :param output_path: 输出图像文件路径
     :param time: 截图时间点（秒数）
     """
     cap = cv2.VideoCapture(video_path)
@@ -25,7 +24,11 @@ def capture_frame(video_path, time):
     font = ImageFont.truetype("arial.ttf", 100)
     outline_width = 3
     # 黑色轮廓的偏移量
-    offsets = [(dx, dy) for dx in range(-outline_width, outline_width+1) for dy in range(-outline_width, outline_width+1) if dx != 0 or dy != 0]
+    offsets = []
+    for dx in range(-outline_width, outline_width + 1):
+        for dy in range(-outline_width, outline_width + 1):
+            if dx != 0 or dy != 0:
+                offsets.append((dx, dy))
 
     # 绘制黑色轮廓
     x, y = (10, 10)
@@ -113,7 +116,7 @@ def combine_frame(frame_list, args, info):
     """
     将多个图像组合成一个新的图像。
     :param frame_list: 包含图像的列表
-    :param ratio: 截图组合的宽高比，格式为"4:5"
+    :param args: 命令行参数
     :param info: 视频信息字典
     :return: 新的图像
     """
