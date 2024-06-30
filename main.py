@@ -2,7 +2,6 @@ import cv2
 from PIL import Image, ImageDraw, ImageFont
 import argparse
 
-
 def capture_frame(video_path, time):
     """
     使用opencv从视频文件中获取指定时间点的截图并保存为图像文件。
@@ -24,9 +23,17 @@ def capture_frame(video_path, time):
     image = Image.fromarray(frame_rgb)
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype("arial.ttf", 100)
+    outline_width = 3
+    # 黑色轮廓的偏移量
+    offsets = [(dx, dy) for dx in range(-outline_width, outline_width+1) for dy in range(-outline_width, outline_width+1) if dx != 0 or dy != 0]
+
+    # 绘制黑色轮廓
+    x, y = (10, 10)
+    for dx, dy in offsets:
+        draw.text((x+dx, y+dy), convert_seconds(time), font=font, fill=(0, 0, 0, 255))
 
     # 添加文字水印
-    draw.text((10, 10), str(time), font=font, fill=(255, 255, 255, 128))  # 使用白色半透明文字
+    draw.text((10, 10), convert_seconds(time), font=font, fill=(255, 255, 255, 128))  # 使用白色半透明文字
 
     return image
 
@@ -63,7 +70,14 @@ def get_video_info(video_path):
 
     return video_info
 
+# 将秒数转换为小时:分钟:秒格式
+def convert_seconds(seconds):
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    return f"{hours:02}:{minutes:02}:{secs:02}"
 
+# 检查输入的质量值是否在1到10之间
 def check_quality_range(value):
     """
     检查输入的质量值是否在1到10之间。
@@ -76,7 +90,7 @@ def check_quality_range(value):
         raise argparse.ArgumentTypeError(f"{value} is an invalid quality value, must be between 1 and 10.")
     return ivalue
 
-
+# 检查输入的截图组合宽高比格式是否正确
 def check_ratio_range(value):
     """
     检查输入的截图组合宽高比格式是否为"4:5"。
@@ -94,20 +108,34 @@ def check_ratio_range(value):
 
     return ivalue
 
-
-def combine_frame(frame_list, ratio, info):
+# 将多个图像组合成一个新的图像
+def combine_frame(frame_list, args, info):
+    """
+    将多个图像组合成一个新的图像。
+    :param frame_list: 包含图像的列表
+    :param ratio: 截图组合的宽高比，格式为"4:5"
+    :param info: 视频信息字典
+    :return: 新的图像
+    """
     width, height = info['resolution']
 
+    width_ratio, height_ratio = int(args.ratio[0]), int(args.ratio[1])
+
+    size = (width * height_ratio, height * width_ratio)
+
     # 创建一个新的空白图像，大小为4x5的组合
-    combined_image = Image.new('RGB', (width * int(ratio[1]), height * int(ratio[0])))
+    combined_image = Image.new('RGB', size)
 
     # 将字典中的图像按顺序放入组合图像中
     for idx, image in enumerate(frame_list):
-        x = (idx % int(ratio[1])) * width
-        y = (idx // int(ratio[1])) * height
+        x = (idx % height_ratio) * width
+        y = (idx // height_ratio) * height
         combined_image.paste(image, (x, y))
 
-    return combined_image
+    resized_size = (int(size[0]*0.5), int(size[1]*0.5))
+    resized_image = combined_image.resize(resized_size, Image.LANCZOS)
+
+    return resized_image
 
 
 # 参数解析
@@ -115,8 +143,8 @@ def parser():
     parser = argparse.ArgumentParser(description="从视频文件中获取指定时间点的截图")
     parser.add_argument('video', help="视频文件路径，可以拖入视频文件")
     # 截图质量
-    parser.add_argument('-q', '--quality', nargs='?', default=5, type=check_quality_range,
-                        help="截图质量，可选值1~9，默认为5")
+    parser.add_argument('-q', '--quality', nargs='?', default=6, type=check_quality_range,
+                        help="截图质量，可选值1~9，默认为6")
     # 截图宽高比
     parser.add_argument('-r', '--ratio', nargs='?', default='4:5', type=check_ratio_range,
                         help="截图组合宽高比，默认为4:5")
@@ -141,8 +169,6 @@ def main():
     else:
         parts = [video_info['duration'] / num] * num
     for i, part in enumerate(parts):
-        # if i == 0:
-        #     continue
         # 加入列表
         if args.skip:
             screenshot_list.append(capture_frame(args.video, round(part * i+90, 3)))
@@ -151,21 +177,7 @@ def main():
         else:
             screenshot_list.append(capture_frame(args.video, round(part * i, 3)))
 
-    # screenshot_dict[1].save('image.png')
-
-    combine_frame(screenshot_list, args.ratio, video_info).save(args.output)
-
-    # print(video_info)
-    # print(args)
-
-
-# 示例使用
-video = 'video/video.mp4'
-output = 'img/screenshot.jpg'
-time = 5  # 截取视频90秒时的帧
-
-# python test.py 'video/video.mp4' 5 -q 9
-# python test.py 'video/video.mp4' 5 -q 9 -r 16:9
+    combine_frame(screenshot_list, args, video_info).save(args.output, quality=args.quality*10)
 
 if __name__ == '__main__':
     main()
@@ -175,3 +187,4 @@ if __name__ == '__main__':
 
 # python -m nuitka --mingw64 --standalone --show-memory --follow-imports --lto=no
 # --assume-yes-for-downloads --output-dir=build --disable-console --onefile main.py
+# --windows-console-mode=disable
