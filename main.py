@@ -146,18 +146,26 @@ def parser():
     parser = argparse.ArgumentParser(description="从视频文件中获取指定时间点的截图")
     parser.add_argument('video', help="视频文件路径，可以拖入视频文件")
     # 截图质量
-    parser.add_argument('-q', '--quality', nargs='?', default=6, type=check_quality_range,
-                        help="截图质量，可选值1~9，默认为6")
+    parser.add_argument('-q', '--quality', nargs='?', default=6,
+                        type=check_quality_range, help="截图质量，可选值1~9，默认为6")
     # 截图宽高比
-    parser.add_argument('-r', '--ratio', nargs='?', default='4:5', type=check_ratio_range,
-                        help="截图组合宽高比，默认为4:5")
+    parser.add_argument('-r', '--ratio', nargs='?', default='4:5',
+                        type=check_ratio_range, help="截图组合宽高比，默认为4:5")
     # 是否跳过头尾
-    parser.add_argument('-s', '--skip', action='store_true', help="是否跳过头尾，默认为False")
+    parser.add_argument('-s', '--skip', action='store', default=None,
+                        help="是否跳过片头片尾，片头默认为从0开始的90秒，片尾默认为视频最后90秒")
     # 输出图像文件路径
     parser.add_argument('-o', '--output', nargs='?', default='screenshot.jpg',
                         help="输出图像文件路径，默认为screenshot.jpg")
-
     args = parser.parse_args()
+
+    # 如果-s没有被指定，则设置为False表示不跳过
+    if args.skip is None:
+        args.skip = False
+    # 如果-s被指定但没有参数，则设置为默认值
+    elif args.skip == '':
+        args.skip = '0'
+
     return args
 
 
