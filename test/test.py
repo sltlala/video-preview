@@ -155,4 +155,5 @@ if __name__ == '__main__':
 
 # nuitka --mingw64 --standalone --show-memory --lto=no --assume-yes-for-downloads
 # --output-dir=build --disable-console test.py
+#python -m nuitka --mingw64 --show-memory --output-dir=build --windows-console-mode=disable --standalone --lto=no  --onefile main.py
 

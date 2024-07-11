@@ -2,6 +2,7 @@ import cv2
 from PIL import Image, ImageDraw, ImageFont
 import argparse
 
+
 def capture_frame(video_path, time):
     """
     使用opencv从视频文件中获取指定时间点的截图并保存为图像文件。
@@ -33,7 +34,7 @@ def capture_frame(video_path, time):
     # 绘制黑色轮廓
     x, y = (10, 10)
     for dx, dy in offsets:
-        draw.text((x+dx, y+dy), convert_seconds(time), font=font, fill=(0, 0, 0, 255))
+        draw.text((x + dx, y + dy), convert_seconds(time), font=font, fill=(0, 0, 0, 255))
 
     # 添加文字水印
     draw.text((10, 10), convert_seconds(time), font=font, fill=(255, 255, 255, 128))  # 使用白色半透明文字
@@ -73,12 +74,14 @@ def get_video_info(video_path):
 
     return video_info
 
+
 # 将秒数转换为小时:分钟:秒格式
 def convert_seconds(seconds):
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
     return f"{hours:02}:{minutes:02}:{secs:02}"
+
 
 # 检查输入的质量值是否在1到10之间
 def check_quality_range(value):
@@ -92,6 +95,7 @@ def check_quality_range(value):
     if ivalue < 1 or ivalue > 10:
         raise argparse.ArgumentTypeError(f"{value} is an invalid quality value, must be between 1 and 10.")
     return ivalue
+
 
 # 检查输入的截图组合宽高比格式是否正确
 def check_ratio_range(value):
@@ -110,6 +114,7 @@ def check_ratio_range(value):
             f"{value} is an invalid ratio value, the product of the two numbers cannot exceed 40.")
 
     return ivalue
+
 
 # 将多个图像组合成一个新的图像
 def combine_frame(frame_list, args, info):
@@ -135,7 +140,7 @@ def combine_frame(frame_list, args, info):
         y = (idx // height_ratio) * height
         combined_image.paste(image, (x, y))
 
-    resized_size = (int(size[0]*0.5), int(size[1]*0.5))
+    resized_size = (int(size[0] * 0.5), int(size[1] * 0.5))
     resized_image = combined_image.resize(resized_size, Image.LANCZOS)
 
     return resized_image
@@ -162,11 +167,26 @@ def parser():
     # 如果-s没有被指定，则设置为False表示不跳过
     if args.skip is None:
         args.skip = False
-    # 如果-s被指定但没有参数，则设置为默认值
-    elif args.skip == '':
-        args.skip = '0'
 
     return args
+
+def caps_segments(total_duration, skip_time, skip_duration, segments):
+
+    effective_duration = total_duration - skip_duration*2
+    segment_length = effective_duration / segments
+
+    time_points = []
+    current_time = 0
+    for i in range(segments + 1):
+        if current_time < int(skip_time):
+
+            time_points.append(current_time)
+        else:
+            time_points.append(current_time + skip_duration)
+
+        current_time += segment_length
+
+    return time_points
 
 
 def main():
@@ -175,20 +195,51 @@ def main():
     video_info = get_video_info(args.video)
     screenshot_list = []
     num = int(args.ratio[0]) * int(args.ratio[1]) + 1
-    if args.skip:
-        parts = [(video_info['duration'] - 180) / num] * num
+    if not args.skip:
+        time_points = caps_segments(video_info['duration'], 0, 0, num)
     else:
-        parts = [video_info['duration'] / num] * num
-    for i, part in enumerate(parts):
-        # 加入列表
-        if args.skip:
-            screenshot_list.append(capture_frame(args.video, round(part * i+90, 3)))
-        elif i == 0:
-            continue
-        else:
-            screenshot_list.append(capture_frame(args.video, round(part * i, 3)))
+        time_points = caps_segments(video_info['duration'], args.skip, 90, num)
 
-    combine_frame(screenshot_list, args, video_info).save(args.output, quality=args.quality*10)
+    print(len(time_points), time_points)
+    for i, time in enumerate(time_points):
+        if i == 0:
+            continue
+        screenshot_list.append(capture_frame(args.video, round(time, 3)))
+
+
+    # if not args.skip:
+    #     parts = [video_info['duration'] / num] * num
+    # else:
+    #     parts = [(video_info['duration'] - 180) / num] * num
+    #
+    # for i, part in enumerate(parts):
+    #     if i == 0:
+    #         continue
+    #
+    #     if not args.skip:
+    #         screenshot_list.append(capture_frame(args.video, round(part * i, 3)))
+    #     else:
+    #         if part * i < args.skip:
+    #             screenshot_list.append(capture_frame(args.video, round(part * i, 3)))
+    #         else:
+    #             screenshot_list.append(capture_frame(args.video, round(part * i+90, 3)))
+
+
+    # if args.skip:
+    #     parts = [(video_info['duration'] - 180) / num] * num
+    # else:
+    #     parts = [video_info['duration'] / num] * num
+    # for i, part in enumerate(parts):
+    #     # 加入列表
+    #     if args.skip:
+    #         screenshot_list.append(capture_frame(args.video, round(part * i+90, 3)))
+    #     elif i == 0:
+    #         continue
+    #     else:
+    #         screenshot_list.append(capture_frame(args.video, round(part * i, 3)))
+
+    combine_frame(screenshot_list, args, video_info).save(args.output, quality=args.quality * 10)
+
 
 if __name__ == '__main__':
     main()
