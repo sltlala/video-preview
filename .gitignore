@@ -1,9 +1,7 @@
 /.history
 /.idea
 /build
-/img
 /video
 /venv
-*.jpg
 *.png
 *.mp4

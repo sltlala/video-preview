@@ -157,8 +157,8 @@ def parser():
     parser.add_argument('-r', '--ratio', nargs='?', default='4:5',
                         type=check_ratio_range, help="截图组合宽高比，默认为4:5")
     # 是否跳过头尾
-    parser.add_argument('-s', '--skip', action='store', default=None,
-                        help="是否跳过片头片尾，片头默认为从0开始的90秒，片尾默认为视频最后90秒")
+    parser.add_argument('-s', '--skip', nargs='?', default=None,
+                        help="是否跳过片头片尾，片头默认为开始的90秒，片尾默认为视频最后90秒")
     # 输出图像文件路径
     parser.add_argument('-o', '--output', nargs='?', default='screenshot.jpg',
                         help="输出图像文件路径，默认为screenshot.jpg")
@@ -205,38 +205,6 @@ def main():
         if i == 0:
             continue
         screenshot_list.append(capture_frame(args.video, round(time, 3)))
-
-
-    # if not args.skip:
-    #     parts = [video_info['duration'] / num] * num
-    # else:
-    #     parts = [(video_info['duration'] - 180) / num] * num
-    #
-    # for i, part in enumerate(parts):
-    #     if i == 0:
-    #         continue
-    #
-    #     if not args.skip:
-    #         screenshot_list.append(capture_frame(args.video, round(part * i, 3)))
-    #     else:
-    #         if part * i < args.skip:
-    #             screenshot_list.append(capture_frame(args.video, round(part * i, 3)))
-    #         else:
-    #             screenshot_list.append(capture_frame(args.video, round(part * i+90, 3)))
-
-
-    # if args.skip:
-    #     parts = [(video_info['duration'] - 180) / num] * num
-    # else:
-    #     parts = [video_info['duration'] / num] * num
-    # for i, part in enumerate(parts):
-    #     # 加入列表
-    #     if args.skip:
-    #         screenshot_list.append(capture_frame(args.video, round(part * i+90, 3)))
-    #     elif i == 0:
-    #         continue
-    #     else:
-    #         screenshot_list.append(capture_frame(args.video, round(part * i, 3)))
 
     combine_frame(screenshot_list, args, video_info).save(args.output, quality=args.quality * 10)
 
